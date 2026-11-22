@@ -1,11 +1,13 @@
 package filepanel
 
 import (
+	"os"
 	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/yorukot/superfile/src/pkg/utils"
 
@@ -19,9 +21,6 @@ func TestReturnDirElement(t *testing.T) {
 	dirNatural := filepath.Join(curTestDir, "dirNatural")
 	hiddenOnlyDir := t.TempDir()
 	utils.SetupDirectories(t, curTestDir, dir1, dir2, dirNatural)
-
-	creationDelay := time.Millisecond * 5
-	// Cleanup is handled by TestMain
 
 	// Setup files
 	// All files with 10 bytes of text
@@ -58,7 +57,21 @@ func TestReturnDirElement(t *testing.T) {
 
 	for _, f := range fileSetup {
 		utils.SetupFilesWithData(t, f.data, f.path)
-		time.Sleep(creationDelay)
+	}
+
+	// Set modification times from oldest to newest, with some entries tied.
+	for i, names := range [][]string{
+		{"dir2", "aBcD", "abc"},
+		{"file1.txt"},
+		{"dir1", "xyz.json"},
+		{"file2.txt"},
+		{"dirNatural"},
+		{"1.json"},
+	} {
+		modTime := time.Date(2024, time.January, i+1, 0, 0, 0, 0, time.UTC)
+		for _, name := range names {
+			require.NoError(t, os.Chtimes(filepath.Join(curTestDir, name), modTime, modTime))
+		}
 	}
 
 	testdata := []struct {
@@ -131,16 +144,23 @@ func TestReturnDirElement(t *testing.T) {
 			expectedElemNames: []string{"dirNatural", "dir1", "dir2", "file2.txt", "abc", "xyz.json",
 				"file1.txt", "aBcD", "1.json"},
 		},
-		// This one could be flakey if files are created to quickly, or maybe created in
-		// parallel
 		{
 			name:     "Sort by Date",
 			location: curTestDir,
 			dotFiles: false,
 			sortKind: sortmodel.SortByDate,
 			reversed: false,
-			expectedElemNames: []string{"dirNatural", "1.json", "file2.txt", "abc",
-				"xyz.json", "file1.txt", "aBcD", "dir1", "dir2"},
+			expectedElemNames: []string{"dirNatural", "dir1", "dir2", "1.json", "file2.txt",
+				"xyz.json", "file1.txt", "abc", "aBcD"},
+		},
+		{
+			name:     "Sort by Date Reversed",
+			location: curTestDir,
+			dotFiles: false,
+			sortKind: sortmodel.SortByDate,
+			reversed: true,
+			expectedElemNames: []string{"dir2", "dir1", "dirNatural", "aBcD", "abc",
+				"file1.txt", "xyz.json", "file2.txt", "1.json"},
 		},
 		{
 			name:     "Sort by Type",

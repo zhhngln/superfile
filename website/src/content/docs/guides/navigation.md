@@ -23,7 +23,7 @@ To open several panels at start, pass several paths: `spf ~/projects ~/Downloads
 | ------------- | ----------------------------------------------- |
 | Name          | Folders first, A to Z                           |
 | Size          | Folders first by item count, then files by size |
-| Date Modified | Newest first, folders mixed with files          |
+| Date Modified | Folders first, newest first within each group   |
 | Type          | Folders first, then files by extension          |
 | Natural       | Like Name, but `file2` comes before `file10`    |
 

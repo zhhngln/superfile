@@ -30,9 +30,7 @@ func getOrderingFunc(elements []Element, reversed bool, sortKind sortmodel.SortK
 	case sortmodel.SortBySize:
 		order = getSizeOrderingFunc(elements, reversed)
 	case sortmodel.SortByDate:
-		order = func(i, j int) bool {
-			return elements[i].Info.ModTime().After(elements[j].Info.ModTime()) != reversed
-		}
+		order = getDateOrderingFunc(elements, reversed)
 	case sortmodel.SortByType:
 		order = getTypeOrderingFunc(elements, reversed)
 	case sortmodel.SortByNatural:
@@ -68,6 +66,28 @@ func getSizeOrderingFunc(elements []Element, reversed bool) sliceOrderFunc {
 			return elements[i].ChildCount < elements[j].ChildCount != reversed
 		}
 		return elements[i].Info.Size() < elements[j].Info.Size() != reversed
+	}
+}
+
+func getDateOrderingFunc(elements []Element, reversed bool) sliceOrderFunc {
+	return func(i, j int) bool {
+		if elements[i].Directory != elements[j].Directory {
+			return elements[i].Directory
+		}
+		if reversed {
+			i, j = j, i
+		}
+		if date := elements[i].Info.ModTime().Compare(elements[j].Info.ModTime()); date != 0 {
+			return date > 0
+		}
+
+		nameI, nameJ := elements[i].Name, elements[j].Name
+		if !common.Config.CaseSensitiveSort {
+			if cmp := strings.Compare(strings.ToLower(nameI), strings.ToLower(nameJ)); cmp != 0 {
+				return cmp < 0
+			}
+		}
+		return nameI < nameJ
 	}
 }
 
